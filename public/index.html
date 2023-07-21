@@ -40,7 +40,7 @@
         var colorGrid = document.getElementById('color-grid');
         var selectedColorDisplay = document.getElementById('selected-color');
         var selectedColor = 'black';
-        var socket = new WebSocket("ws://" + window.location.hostname + ":9090/ws");
+        var socket = new WebSocket("ws://" + window.location.host + "/ws");
         socket.onmessage = function(event) {
             var p = JSON.parse(event.data);
             ctx.fillStyle = p.color;
