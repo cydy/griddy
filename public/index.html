@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Go r/place clone</title>
+    <style>
+        canvas {
+            border: 1px solid black;
+        }
+        #color-grid div {
+            width: 50px;
+            height: 50px;
+            float: left;
+            border: 1px solid black;
+            cursor: pointer;
+        }
+        #selected-color {
+            width: 50px;
+            height: 50px;
+            background-color: black;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body style="background-color: darkgrey;">
+    <canvas id="canvas" width="800" height="800"></canvas>
+    <div id="color-grid">
+        <div style="background-color: black;"></div>
+        <div style="background-color: white;"></div>
+        <div style="background-color: red;"></div>
+        <div style="background-color: green;"></div>
+        <div style="background-color: blue;"></div>
+        <div style="background-color: orange;"></div>
+        <div style="background-color: yellow;"></div>
+        <div style="background-color: purple;"></div>
+    </div>
+    <div id="selected-color"></div>
+    <script>
+        var canvas = document.getElementById('canvas');
+        var ctx = canvas.getContext('2d');
+        var colorGrid = document.getElementById('color-grid');
+        var selectedColorDisplay = document.getElementById('selected-color');
+        var selectedColor = 'black';
+        var socket = new WebSocket("ws://" + window.location.hostname + ":9090/ws");
+        socket.onmessage = function(event) {
+            var p = JSON.parse(event.data);
+            ctx.fillStyle = p.color;
+            ctx.fillRect(p.x * 50, p.y * 50, 50, 50);
+        };
+        canvas.addEventListener('click', function(event) {
+            var x = Math.floor((event.pageX - canvas.offsetLeft) / 50);
+            var y = Math.floor((event.pageY - canvas.offsetTop) / 50);
+            socket.send(JSON.stringify({x: x, y: y, color: selectedColor}));
+        });
+        colorGrid.addEventListener('click', function(event) {
+            selectedColor = event.target.style.backgroundColor;
+            selectedColorDisplay.style.backgroundColor = selectedColor;
+        });
+    </script>
+</body>
+</html>
