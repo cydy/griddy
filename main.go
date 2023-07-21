@@ -14,11 +14,14 @@ type pixel struct {
 	Color string `json:"color"`
 }
 
-var grid [16][16]string
+const grid_size_x = 32
+const grid_size_y = 32
+
+var grid [grid_size_x][grid_size_y]string
 
 func init() {
-	for y := 0; y < 16; y++ {
-		for x := 0; x < 16; x++ {
+	for y := 0; y < grid_size_y; y++ {
+		for x := 0; x < grid_size_x; x++ {
 			grid[x][y] = "black"
 		}
 	}
@@ -45,6 +48,20 @@ var validColors = map[string]bool{
 	"fuchsia":       true,
 	"rebeccapurple": true,
 	"teal":          true,
+	"tan":           true,
+}
+
+type gridSize struct {
+	X int `json:"x"`
+	Y int `json:"y"`
+}
+
+func sendGridSize(conn *websocket.Conn) {
+	size := &gridSize{X: grid_size_x, Y: grid_size_y}
+	err := conn.WriteJSON(size)
+	if err != nil {
+		log.Println(err)
+	}
 }
 
 func wsHandler(w http.ResponseWriter, r *http.Request) {
@@ -57,6 +74,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	clients[conn] = true
 	lock.Unlock()
 
+	sendGridSize(conn)
 	sendGridState(conn)
 
 	for {
@@ -84,8 +102,8 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 func sendGridState(conn *websocket.Conn) {
 	lock.RLock()
 	defer lock.RUnlock()
-	for y := 0; y < 16; y++ {
-		for x := 0; x < 16; x++ {
+	for y := 0; y < grid_size_y; y++ {
+		for x := 0; x < grid_size_x; x++ {
 			p := &pixel{X: x, Y: y, Color: grid[x][y]}
 			err := conn.WriteJSON(p)
 			if err != nil {
