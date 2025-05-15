@@ -1,12 +1,16 @@
 package main
 
 import (
+	"embed"
 	"log"
 	"net/http"
 	"sync"
 
 	"github.com/gorilla/websocket"
 )
+
+//go:embed index.html
+var indexHTML embed.FS
 
 type pixel struct {
 	X     int    `json:"x"`
@@ -126,6 +130,6 @@ func broadcastPixel(p *pixel) {
 
 func main() {
 	http.HandleFunc("/ws", wsHandler)
-	http.Handle("/", http.FileServer(http.Dir("./public")))
+	http.Handle("/", http.FileServer(http.FS(indexHTML)))
 	log.Fatal(http.ListenAndServe(":9090", nil))
 }
