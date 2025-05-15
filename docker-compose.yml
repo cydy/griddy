@@ -1,0 +1,8 @@
+version: '3.8'
+
+services:
+  griddy:
+    image: ghcr.io/cydy/griddy
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
