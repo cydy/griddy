@@ -12,13 +12,11 @@
             float: left;
             border: 1px solid black;
             cursor: pointer;
+            position: relative;
         }
-        #selected-color {
-            width: 50px;
-            height: 50px;
-            background-color: black;
-            margin-top: 20px;
-            border: 2px solid red;
+        #color-picker div.selected {
+            border: 3px solid magenta;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
         }
         .grid-square {
             float: left;
@@ -26,28 +24,42 @@
             cursor: pointer;
         }
         #color-picker {
-            /* float: left; this will move the color picker to the left of the selected color area */
+            display: inline-block;
+            vertical-align: middle;
+        }
+        #client-counter {
+            display: inline-block;
+            vertical-align: middle;
+            margin-left: 20px;
+            font-size: 18px;
+            color: black;
+            font-family: Arial, sans-serif;
+        }
+        .controls {
+            margin-top: 20px;
         }
     </style>
 </head>
 <body style="background-color: darkgrey;">
     <canvas id="canvas"></canvas>
-    <div id="color-picker">
-        <div style="background-color: black;"></div>
-        <div style="background-color: white;"></div>
-        <div style="background-color: red;"></div>
-        <div style="background-color: green;"></div>
-        <div style="background-color: blue;"></div>
-        <div style="background-color: orange;"></div>
-        <div style="background-color: yellow;"></div>
-        <div style="background-color: purple;"></div>
+    <div class="controls">
+        <div id="color-picker">
+            <div style="background-color: black;"></div>
+            <div style="background-color: white;"></div>
+            <div style="background-color: red;"></div>
+            <div style="background-color: green;"></div>
+            <div style="background-color: blue;"></div>
+            <div style="background-color: orange;"></div>
+            <div style="background-color: yellow;"></div>
+            <div style="background-color: purple;"></div>
+        </div>
+        <div id="client-counter">Connected users: 0</div>
     </div>
-    <div id="selected-color"></div>
 <script>
         var canvas = document.getElementById('canvas');
         var ctx = canvas.getContext('2d');
         var colorPicker = document.getElementById('color-picker');
-        var selectedColorDisplay = document.getElementById('selected-color');
+        var clientCounter = document.getElementById('client-counter');
         var selectedColor = 'black';
         var protocol = window.location.protocol === "https:" ? "wss://" : "ws://";
         var socket = new WebSocket(protocol + window.location.host + "/ws");
@@ -57,13 +69,20 @@
 
         // select a random color that is not black
         var selectedColor = colors[Math.floor(Math.random() * colors.length)];
-        selectedColorDisplay.style.backgroundColor = selectedColor;
-
+        // Find and highlight the initially selected color
+        Array.from(colorPicker.children).forEach(div => {
+            if (div.style.backgroundColor === selectedColor) {
+                div.classList.add('selected');
+            }
+        });
 
         socket.onmessage = function(event) {
             var data = JSON.parse(event.data);
 
-            if (data.x !== undefined && data.y !== undefined) {
+            if (data.type === 1) {
+                // it's a client count update
+                clientCounter.textContent = "Connected users: " + data.count;
+            } else if (data.x !== undefined && data.y !== undefined) {
                 if (data.color !== undefined) {
                     // it's a pixel
                     ctx.fillStyle = data.color;
@@ -86,8 +105,15 @@
 
         // update the color picker event listener
         colorPicker.addEventListener('click', function(event) {
-            selectedColor = event.target.style.backgroundColor;
-            selectedColorDisplay.style.backgroundColor = selectedColor;
+            if (event.target.style.backgroundColor) {
+                selectedColor = event.target.style.backgroundColor;
+                // Remove selected class from all color divs
+                Array.from(colorPicker.children).forEach(div => {
+                    div.classList.remove('selected');
+                });
+                // Add selected class to clicked color
+                event.target.classList.add('selected');
+            }
         });
     </script>
 </body>

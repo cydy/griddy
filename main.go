@@ -80,6 +80,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 
 	sendGridSize(conn)
 	sendGridState(conn)
+	broadcastClientCount()
 
 	for {
 		p := &pixel{}
@@ -89,6 +90,7 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 			delete(clients, conn)
 			lock.Unlock()
 			log.Println(err)
+			broadcastClientCount()
 			return
 		}
 
@@ -122,6 +124,21 @@ func broadcastPixel(p *pixel) {
 	defer lock.RUnlock()
 	for conn := range clients {
 		err := conn.WriteJSON(p)
+		if err != nil {
+			log.Println(err)
+		}
+	}
+}
+
+func broadcastClientCount() {
+	lock.RLock()
+	count := len(clients)
+	lock.RUnlock()
+
+	lock.RLock()
+	defer lock.RUnlock()
+	for conn := range clients {
+		err := conn.WriteJSON(map[string]int{"type": 1, "count": count})
 		if err != nil {
 			log.Println(err)
 		}
