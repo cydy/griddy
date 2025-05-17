@@ -24,8 +24,8 @@ const grid_size_y = 100
 var grid [grid_size_x][grid_size_y]string
 
 func init() {
-	for y := 0; y < grid_size_y; y++ {
-		for x := 0; x < grid_size_x; x++ {
+	for y := range grid_size_y {
+		for x := range grid_size_x {
 			grid[x][y] = "black"
 		}
 	}
