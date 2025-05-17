@@ -9,8 +9,8 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-//go:embed index.html
-var indexHTML embed.FS
+//go:embed index.html 98.css
+var staticFiles embed.FS
 
 type pixel struct {
 	X     int    `json:"x"`
@@ -18,8 +18,8 @@ type pixel struct {
 	Color string `json:"color"`
 }
 
-const grid_size_x = 32
-const grid_size_y = 32
+const grid_size_x = 100
+const grid_size_y = 100
 
 var grid [grid_size_x][grid_size_y]string
 
@@ -147,6 +147,8 @@ func broadcastClientCount() {
 
 func main() {
 	http.HandleFunc("/ws", wsHandler)
-	http.Handle("/", http.FileServer(http.FS(indexHTML)))
-	log.Fatal(http.ListenAndServe(":9090", nil))
+
+	http.Handle("/", http.FileServer(http.FS(staticFiles)))
+
+	log.Fatal(http.ListenAndServe("0.0.0.0:9090", nil))
 }
