@@ -3,8 +3,19 @@
 <head>
     <title>Griddy</title>
     <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: darkgrey;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
         canvas {
-            /* border: 1px solid black; */
+            max-width: 100%;
+            height: auto;
         }
         #color-picker div {
             width: 50px;
@@ -37,10 +48,14 @@
         }
         .controls {
             margin-top: 20px;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
         }
     </style>
 </head>
-<body style="background-color: darkgrey;">
+<body>
     <canvas id="canvas"></canvas>
     <div class="controls">
         <div id="color-picker">
@@ -66,6 +81,63 @@
         var colors = ["white", "red", "green", "blue", "orange", "yellow", "purple"];
         var gridSize;
         var squareSize;
+        var gridState = {}; // Store the current state of the grid
+
+        function updateCanvasSize() {
+            if (!gridSize) return;
+            
+            // Calculate available space
+            const maxWidth = window.innerWidth * 0.95;  // 95% of window width
+            const maxHeight = window.innerHeight * 0.7; // 70% of window height
+            
+            // Calculate square size based on available space
+            squareSize = Math.min(
+                maxWidth / gridSize.x,
+                maxHeight / gridSize.y
+            );
+            
+            // Get the device pixel ratio
+            const dpr = window.devicePixelRatio || 1;
+            
+            // Set the canvas size accounting for pixel ratio
+            canvas.width = gridSize.x * squareSize * dpr;
+            canvas.height = gridSize.y * squareSize * dpr;
+            
+            // Scale the canvas context to match the pixel ratio
+            ctx.scale(dpr, dpr);
+            
+            // Set the display size of the canvas
+            canvas.style.width = `${gridSize.x * squareSize}px`;
+            canvas.style.height = `${gridSize.y * squareSize}px`;
+            
+            // Redraw the grid
+            redrawGrid();
+        }
+
+        function redrawGrid() {
+            if (!gridSize) return;
+            
+            // Get the device pixel ratio
+            const dpr = window.devicePixelRatio || 1;
+            
+            // Reset the transformation matrix
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            // Scale for pixel ratio
+            ctx.scale(dpr, dpr);
+            
+            // Clear the canvas
+            ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+            
+            // Redraw all pixels using the stored state
+            for (let y = 0; y < gridSize.y; y++) {
+                for (let x = 0; x < gridSize.x; x++) {
+                    const key = `${x},${y}`;
+                    const color = gridState[key] || 'black'; // Use stored color or default to black
+                    ctx.fillStyle = color;
+                    ctx.fillRect(x * squareSize, y * squareSize, squareSize, squareSize);
+                }
+            }
+        }
 
         // select a random color that is not black
         var selectedColor = colors[Math.floor(Math.random() * colors.length)];
@@ -85,21 +157,22 @@
             } else if (data.x !== undefined && data.y !== undefined) {
                 if (data.color !== undefined) {
                     // it's a pixel
+                    const key = `${data.x},${data.y}`;
+                    gridState[key] = data.color; // Store the pixel state
                     ctx.fillStyle = data.color;
                     ctx.fillRect(data.x * squareSize, data.y * squareSize, squareSize, squareSize);
                 } else {
                     // it's the grid size
                     gridSize = data;
-                    squareSize = Math.min(window.innerWidth * 0.9 / gridSize.x, window.innerHeight * 0.8 / gridSize.y);
-                    canvas.width = gridSize.x * squareSize;
-                    canvas.height = gridSize.y * squareSize;
+                    updateCanvasSize();
                 }
             }
         };
 
         canvas.addEventListener('click', function(event) {
-            var x = Math.floor((event.pageX - canvas.offsetLeft) / squareSize);
-            var y = Math.floor((event.pageY - canvas.offsetTop) / squareSize);
+            var rect = canvas.getBoundingClientRect();
+            var x = Math.floor((event.clientX - rect.left) / squareSize);
+            var y = Math.floor((event.clientY - rect.top) / squareSize);
             socket.send(JSON.stringify({x: x, y: y, color: selectedColor}));
         });
 
@@ -115,6 +188,9 @@
                 event.target.classList.add('selected');
             }
         });
+
+        // Add resize event listener
+        window.addEventListener('resize', updateCanvasSize);
     </script>
 </body>
 </html>
