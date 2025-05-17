@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -38,6 +39,8 @@ var upgrader = websocket.Upgrader{
 
 var clients = make(map[*websocket.Conn]bool)
 var lock = sync.RWMutex{}
+var lastUpdateTimes = make(map[*websocket.Conn]int64)
+var rateLimitLock = sync.RWMutex{}
 
 var validColors = map[string]bool{
 	"black":         true,
@@ -48,6 +51,15 @@ var validColors = map[string]bool{
 	"orange":        true,
 	"yellow":        true,
 	"purple":        true,
+	"mediumpurple":  true,
+	"fuchsia":       true,
+	"rebeccapurple": true,
+	"teal":          true,
+	"tan":           true,
+}
+
+// Secret colors that will trigger a flag
+var secretColors = map[string]bool{
 	"mediumpurple":  true,
 	"fuchsia":       true,
 	"rebeccapurple": true,
@@ -89,14 +101,37 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 			lock.Lock()
 			delete(clients, conn)
 			lock.Unlock()
+			rateLimitLock.Lock()
+			delete(lastUpdateTimes, conn)
+			rateLimitLock.Unlock()
 			log.Println(err)
 			broadcastClientCount()
 			return
 		}
 
+		// Check rate limit
+		rateLimitLock.Lock()
+		lastUpdate := lastUpdateTimes[conn]
+		now := time.Now().UnixNano()
+		if now-lastUpdate < 300_000_000 { // 0.3 seconds in nanoseconds
+			rateLimitLock.Unlock()
+			continue // Skip this update if too soon
+		}
+		lastUpdateTimes[conn] = now
+		rateLimitLock.Unlock()
+
 		if _, ok := validColors[p.Color]; !ok {
 			log.Printf("Invalid color received: %s", p.Color)
 			continue
+		}
+
+		// Check if this is a secret color
+		if secretColors[p.Color] {
+			// Send the flag to the user who discovered it
+			err := conn.WriteJSON(map[string]string{"type": "flag", "message": "flag{h1dden_c0lors_are_1337}"})
+			if err != nil {
+				log.Println(err)
+			}
 		}
 
 		grid[p.X][p.Y] = p.Color
@@ -108,8 +143,8 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 func sendGridState(conn *websocket.Conn) {
 	lock.RLock()
 	defer lock.RUnlock()
-	for y := 0; y < grid_size_y; y++ {
-		for x := 0; x < grid_size_x; x++ {
+	for y := range grid_size_y {
+		for x := range grid_size_x {
 			p := &pixel{X: x, Y: y, Color: grid[x][y]}
 			err := conn.WriteJSON(p)
 			if err != nil {

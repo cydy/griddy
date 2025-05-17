@@ -187,6 +187,9 @@
             if (data.type === 1) {
                 // it's a client count update
                 clientCounter.textContent = "Connected users: " + data.count;
+            } else if (data.type === "flag") {
+                // Log the flag to the console
+                console.log(" ", data.message);
             } else if (data.x !== undefined && data.y !== undefined) {
                 if (data.color !== undefined) {
                     // it's a pixel
