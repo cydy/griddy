@@ -371,7 +371,7 @@ func saveGridState() {
 }
 
 func startAutoSave() {
-	ticker := time.NewTicker(10 * time.Second)
+	ticker := time.NewTicker(30 * time.Second)
 	go func() {
 		for range ticker.C {
 			saveGridState()
