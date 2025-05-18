@@ -6,3 +6,5 @@ services:
     ports:
       - "9090:9090"
     restart: unless-stopped
+    volumes:
+      - ./states:/app/states
